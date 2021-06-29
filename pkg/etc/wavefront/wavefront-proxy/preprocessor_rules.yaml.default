@@ -51,14 +51,6 @@
 ##
 ##############################################################################
 
-# rules that apply to all ports
-'global':
-
-  # Example no-op rule
-  #################################################################
-  - rule    : example-rule-do-nothing
-    action  : count
-
 ## rules that apply only to data received on port 2879
 #'2879':
 
@@ -306,3 +298,11 @@
   #  action  : addTag
   #  tag     : k8scluster
   #  value   : eks-dev
+
+# rules that apply to all ports explicitly specified above. Global rules must be at the end of the file
+'global':
+
+  # Example no-op rule
+  #################################################################
+  - rule    : example-rule-do-nothing
+    action  : count
