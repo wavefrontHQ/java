@@ -1,6 +1,15 @@
 #This docker file need to be run on RHEL with subscription enabled.
 FROM registry.access.redhat.com/ubi7
-USER root
+MAINTAINER wavefront wavefront@vmware.com
+
+### Required OpenShift Labels
+LABEL name="Wavefront Proxy" \
+      maintainer="wavefront@vmware.com" \
+      vendor="Wavefront by VMware" \
+      version="10.7" \
+      release="1" \
+      summary="A Wavefront proxy ingests metrics and forwards them to the Wavefront service in a secure, fast, and reliable manner." \
+      description="The Wavefront Proxy is a light-weight Java application that you send your metrics, histograms, and trace data to. It handles batching and transmission of your data to the Wavefront service in a secure, fast, and reliable manner"
 
 # This script may automatically configure wavefront without prompting, based on
 # these variables:
@@ -11,19 +20,33 @@ USER root
 #  WAVEFRONT_PROXY_ARGS    (default is none)
 #  JAVA_ARGS               (default is none)
 
-RUN yum-config-manager --enable rhel-7-server-optional-rpms
-RUN yum update --disableplugin=subscription-manager -y && rm -rf /var/cache/yum
+RUN mkdir /licenses
 
-RUN yum install -y sudo
-RUN yum install -y curl
+COPY LICENSE /licenses/license.txt
+COPY open_source_licenses.txt /licenses/
+
+### Add necessary Red Hat repos here
+RUN REPOLIST=rhel-7-server-rpms,rhel-7-server-optional-rpms
+
 RUN yum install -y hostname
 RUN yum install -y java-11-openjdk-devel
 
+# Add new group:user "wavefront"
+RUN /usr/sbin/groupadd -g 2000 wavefront
+RUN useradd --comment '' --uid 1000 --gid 2000 wavefront
+RUN chown -R wavefront:wavefront /var
+RUN chmod 755 /var
+RUN su - wavefront
+
 # Download wavefront proxy (latest release). Merely extract the package, don't want to try running startup scripts.
-RUN curl -s https://packagecloud.io/install/repositories/wavefront/proxy/script.rpm.sh | sudo bash
+
+RUN cd /tmp/
+RUN curl -s https://packagecloud.io/install/repositories/wavefront/proxy/script.rpm.sh >> script.rpm.sh
+RUN chmod +x script.rpm.sh
+RUN ./script.rpm.sh
 RUN yum -y update
 RUN yum -y -q install wavefront-proxy
-
+RUN rm script.rpm.sh
 # Configure agent
 RUN cp /etc/wavefront/wavefront-proxy/log4j2-stdout.xml.default /etc/wavefront/wavefront-proxy/log4j2.xml
 
