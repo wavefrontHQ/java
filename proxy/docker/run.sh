@@ -33,6 +33,28 @@ if [ "${JVM_USE_CONTAINER_OPTS}" = false ] ; then
     jvm_container_opts="-Xmx$java_heap_usage -Xms$java_heap_usage"
 fi
 
+###################
+# import CA certs #
+###################
+files=$(ls /tmp/ca/*.pem)
+if [ ${#files[@]} -gt 0 ]; then
+  echo
+  echo "Adding credentials to JVM store.."
+  echo
+  for filename in ${files}; do
+    alias=$(basename ${filename})
+    alias=${alias%.*}
+    echo "----------- Adding credential file:${filename} alias:${alias}"
+    keytool -noprompt -cacerts -importcert -storepass changeit -file ${filename} -alias ${alias}
+    keytool -storepass changeit -list -v -cacerts -alias ${alias}
+    echo "----------- Done"
+    echo
+  done
+fi
+
+#############
+# run proxy #
+#############
 java \
     $jvm_container_opts $JAVA_ARGS \
 	-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager \
